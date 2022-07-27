@@ -80,7 +80,6 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 
 		myCache[name] = ts // after the parse
 	}
-
 	return myCache, nil
 }
 
