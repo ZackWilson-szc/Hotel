@@ -5,6 +5,7 @@ import (
 	"Hotel/pkg/models"
 	"bytes"
 	"fmt"
+	"github.com/justinas/nosurf"
 	"html/template"
 	"log"
 	"net/http"
@@ -13,9 +14,10 @@ import (
 
 var app *config.Appconfig
 
-func AddDefaultData(td *models.TemplateData) *models.TemplateData {
+func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateData {
 	// when I discover to determine exactly what data I want to be available on every page, I can add here
 	// but for now, this function is not useful
+	td.CSRFToken = nosurf.Token(r)
 	return td
 }
 
@@ -25,7 +27,7 @@ func NewTemplates(a *config.Appconfig) {
 }
 
 // RenderTemplate renders templates using html/template
-func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData) {
+func RenderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, td *models.TemplateData) {
 	// create a template cache
 	var tc map[string]*template.Template
 	if app.UseCache { // 正式使用的时候，UseCache可以是True，不用每次加载，开发的时候改成false，每次刷新都会有改变
@@ -39,9 +41,9 @@ func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData)
 	if !ok {
 		log.Fatal("Could not get template from template cache")
 	}
-	td = AddDefaultData(td)  // template data
-	buf := new(bytes.Buffer) // these two lines are not mandatory, execute the value that I got from that map
-	_ = t.Execute(buf, td)   // give me a clear view the value I got from the map, the error will appear if we parse it but can't execute
+	td = AddDefaultData(td, r) // template data
+	buf := new(bytes.Buffer)   // these two lines are not mandatory, execute the value that I got from that map
+	_ = t.Execute(buf, td)     // give me a clear view the value I got from the map, the error will appear if we parse it but can't execute
 	_, err := buf.WriteTo(w)
 	if err != nil {
 		fmt.Println("Error writing template to browser", err)
@@ -80,6 +82,7 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 
 		myCache[name] = ts // after the parse
 	}
+
 	return myCache, nil
 }
 
